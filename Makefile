@@ -1,5 +1,5 @@
 
-.PHONY: postgres createdb dropdb migrateup migratedown sqlc test
+.PHONY: postgres createdb dropdb migrateup migratedown sqlc test server
 
 postgres:
 	docker run --name postgres-12 -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=shoroog -d postgres:12-alpine
@@ -15,4 +15,6 @@ sqlc:
 	sqlc generate
 test:
 	go test -v -cover ./...
+server:
+	go run main.go
 # it is better to name this file as Makefile with small if, when using mac
