@@ -6,22 +6,27 @@ import (
 	"fmt"
 )
 
+type Store interface {
+	Querier
+	TrasnferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error)
+}
+
 // We added this to extend the functionality of Queries, since Qeries does not support transactions, only individual queries
 // This is called Composition
-type Store struct {
+type SQLStore struct {
 	*Queries
 	db *sql.DB
 }
 
-func NewStore(db *sql.DB) *Store {
-	return &Store{
+func NewStore(db *sql.DB) Store {
+	return &SQLStore{
 		db:      db,
 		Queries: New(db),
 	}
 }
 
 // Executes a function within a transaction
-func (store *Store) execTx(ctx context.Context, fn func(*Queries) error) error {
+func (store *SQLStore) execTx(ctx context.Context, fn func(*Queries) error) error {
 	tx, err := store.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -53,10 +58,10 @@ type TransferTxResult struct {
 	ToEntry     Entry    `json:"to_entry"`
 }
 
-// first {} is for definition, second {} is for creating an instance, so two steps in one 
+// first {} is for definition, second {} is for creating an instance, so two steps in one
 var txKey = struct{}{}
 
-func (store *Store) trasnferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error) {
+func (store *SQLStore) TrasnferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error) {
 	var result TransferTxResult
 
 	err := store.execTx(ctx, func(q *Queries) error {
@@ -89,7 +94,7 @@ func (store *Store) trasnferTx(ctx context.Context, arg TransferTxParams) (Trans
 		}
 
 		fmt.Println(txName, "get account from")
-		
+
 		// Old approach two queries to update account baalance
 		// account1, err := q.GetAccountForUpdate(ctx, arg.FromAccountID)
 		// if err != nil {
@@ -123,7 +128,7 @@ func (store *Store) trasnferTx(ctx context.Context, arg TransferTxParams) (Trans
 
 		// update in order, account with smaller ID first
 		if arg.FromAccountID < arg.ToAccountID {
-			result.FromAccount, result.ToAccount, err = addMoney(ctx, q, arg.FromAccountID, - arg.Amount, arg.ToAccountID, arg.Amount)
+			result.FromAccount, result.ToAccount, err = addMoney(ctx, q, arg.FromAccountID, -arg.Amount, arg.ToAccountID, arg.Amount)
 			if err != nil {
 				return err
 			}
@@ -141,7 +146,6 @@ func (store *Store) trasnferTx(ctx context.Context, arg TransferTxParams) (Trans
 	return result, err
 }
 
-
 func addMoney(
 	ctx context.Context,
 	q *Queries,
@@ -150,9 +154,9 @@ func addMoney(
 	accountID2 int64,
 	amount2 int64,
 
-)(account1 Account, account2 Account, err error) {
+) (account1 Account, account2 Account, err error) {
 	account1, err = q.AddAccountBalance(ctx, AddAccountBalanceParams{
-		ID: accountID1,
+		ID:     accountID1,
 		Amount: amount1,
 	})
 
@@ -161,8 +165,8 @@ func addMoney(
 	}
 
 	account2, err = q.AddAccountBalance(ctx, AddAccountBalanceParams{
-		ID: accountID2,
-		Amount:amount2,
+		ID:     accountID2,
+		Amount: amount2,
 	})
 
 	return
