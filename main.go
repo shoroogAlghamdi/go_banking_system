@@ -3,25 +3,28 @@ import (
 	"database/sql"
 	"log"
 	_ "github.com/lib/pq"
-	"github.com/shoroogAlghamdi/go_banking_system/api"
-	db "github.com/shoroogAlghamdi/go_banking_system/db/sqlc"
-)
-const (
-	dbDriver = "postgres"
-	dbSource = "postgresql://root:shoroog@localhost:5432/banking_system?sslmode=disable"
-	serverAddress = "0.0.0.0:8080"
+	"github.com/shoroogAlghamdi/banking_system/api"
+	"github.com/shoroogAlghamdi/banking_system/util"
+	db "github.com/shoroogAlghamdi/banking_system/db/sqlc"
 )
 
 func main() {
-	conn, err := sql.Open(dbDriver, dbSource)
+	config, err := util.LoadConfig(".")
+	if err != nil {
+		log.Fatal("Couldn't read config vars!")
+	}
+	conn, err := sql.Open(config.DBDriver, config.DBSource)
 	if err != nil {
 		log.Fatal("Couldn't connect to DB!")
 	}
 
 	store := db.NewStore(conn)
-	server := api.NewServer(store)
+	server, err := api.NewServer(config, store)
+	if err != nil {
+		log.Fatal("cannot start server", err)
+	}
 
-	err = server.Start(serverAddress)
+	err = server.Start(config.ServerAddress)
 	if err != nil {
 		log.Fatal("cannot start server", err)
 	}

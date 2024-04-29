@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/techschool/banking_system/db/util"
+	"github.com/shoroogAlghamdi/banking_system/util"
 )
 
 func CreateRandomTransfer(t *testing.T, from_account_id int64, to_account_id int64) Transfer {
